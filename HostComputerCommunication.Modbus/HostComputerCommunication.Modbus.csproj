@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\HostComputerCommunication.Common\HostComputerCommunication.Common.csproj" />
+    <ProjectReference Include="..\HostComputerCommunication.SerialPort\HostComputerCommunication.SerialPort.csproj" />
+    <ProjectReference Include="..\HostComputerCommunication.TcpSocket\HostComputerCommunication.TcpSocket.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,9 @@
+<Solution>
+  <Project Path="HostComputerCommunication.Common/HostComputerCommunication.Common.csproj" />
+  <Project Path="HostComputerCommunication.Modbus/HostComputerCommunication.Modbus.csproj" />
+  <Project Path="HostComputerCommunication.OpcUa/HostComputerCommunication.OpcUa.csproj" />
+  <Project Path="HostComputerCommunication.SerialPort/HostComputerCommunication.SerialPort.csproj" />
+  <Project Path="HostComputerCommunication.TcpSocket/HostComputerCommunication.TcpSocket.csproj" />
+  <Project Path="HostComputerCommunication.Tests/HostComputerCommunication.Tests.csproj" />
+  <Project Path="HostComputerCommunication.UI/HostComputerCommunication.UI.csproj" />
+</Solution>
