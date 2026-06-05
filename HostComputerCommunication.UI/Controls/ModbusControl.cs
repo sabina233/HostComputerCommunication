@@ -17,20 +17,18 @@ public partial class ModbusControl : UserControl
     private TcpClientManager? _tcpManager;
     private readonly Logger _logger = new();
 
-    private bool IsRtuMode => rbRtu.Checked;
-    private bool IsConnected => IsRtuMode
-        ? (_simulator?.IsConnected ?? _serialPort?.IsConnected ?? false)
-        : (_tcpClient?.IsConnected ?? false);
-
     public ModbusControl()
     {
         InitializeComponent();
         SetupFunctionCodes();
-        SetupEvents();
         SetupDataGridView();
+        BindEvents();
         RefreshPorts();
         UpdateModeUI();
+        UpdateWriteUI();
     }
+
+    #region 初始化
 
     private void SetupFunctionCodes()
     {
@@ -44,20 +42,8 @@ public partial class ModbusControl : UserControl
             "15 - 写多个线圈",
             "16 - 写多个寄存器"
         ]);
-        cmbFunction.SelectedIndex = 2; // 默认 03 读保持寄存器
-        cmbDataType.SelectedIndex = 0; // 默认 UInt16
-    }
-
-    private void SetupEvents()
-    {
-        _logger.LogReceived += OnLogReceived;
-        rbRtu.CheckedChanged += (s, e) => UpdateModeUI();
-        btnRefreshPorts.Click += (s, e) => RefreshPorts();
-        btnConnect.Click += (s, e) => ToggleConnection();
-        btnRead.Click += (s, e) => ReadData();
-        btnSend.Click += (s, e) => WriteData();
-        btnClearLog.Click += (s, e) => rtbLog.Clear();
-        cmbFunction.SelectedIndexChanged += (s, e) => UpdateWriteUI();
+        cmbFunction.SelectedIndex = 2;
+        cmbDataType.SelectedIndex = 0;
     }
 
     private void SetupDataGridView()
@@ -67,17 +53,119 @@ public partial class ModbusControl : UserControl
         dgvRegisters.Columns.Add("Value", "解析值");
     }
 
+    #endregion
+
+    #region 事件绑定
+
+    private void BindEvents()
+    {
+        _logger.LogReceived += Logger_LogReceived;
+
+        rbRtu.CheckedChanged += RbRtu_CheckedChanged;
+        btnRefreshPorts.Click += BtnRefreshPorts_Click;
+        chkSimulation.CheckedChanged += ChkSimulation_CheckedChanged;
+        btnConnect.Click += BtnConnect_Click;
+        btnRead.Click += BtnRead_Click;
+        btnSend.Click += BtnSend_Click;
+        btnClearLog.Click += BtnClearLog_Click;
+        cmbFunction.SelectedIndexChanged += CmbFunction_SelectedIndexChanged;
+    }
+
+    #endregion
+
+    #region 连接配置事件
+
+    private void RbRtu_CheckedChanged(object? sender, EventArgs e)
+    {
+        UpdateModeUI();
+    }
+
+    private void ChkSimulation_CheckedChanged(object? sender, EventArgs e)
+    {
+        RefreshPorts();
+    }
+
+    private void BtnRefreshPorts_Click(object? sender, EventArgs e)
+    {
+        RefreshPorts();
+    }
+
+    private void BtnConnect_Click(object? sender, EventArgs e)
+    {
+        if (IsConnected)
+            Disconnect();
+        else
+            Connect();
+    }
+
+    #endregion
+
+    #region 请求配置事件
+
+    private void CmbFunction_SelectedIndexChanged(object? sender, EventArgs e)
+    {
+        UpdateWriteUI();
+    }
+
+    private void BtnRead_Click(object? sender, EventArgs e)
+    {
+        ReadData();
+    }
+
+    private void BtnSend_Click(object? sender, EventArgs e)
+    {
+        WriteData();
+    }
+
+    #endregion
+
+    #region 日志事件
+
+    private void BtnClearLog_Click(object? sender, EventArgs e)
+    {
+        rtbLog.Clear();
+    }
+
+    private void Logger_LogReceived(object? sender, LogEventArgs e)
+    {
+        if (InvokeRequired) { Invoke(() => Logger_LogReceived(sender, e)); return; }
+
+        Color color = e.Level switch
+        {
+            LogLevel.Debug => Color.Gray,
+            LogLevel.Info => Color.LimeGreen,
+            LogLevel.Warning => Color.Yellow,
+            LogLevel.Error => Color.Red,
+            _ => Color.White
+        };
+
+        rtbLog.SelectionStart = rtbLog.TextLength;
+        rtbLog.SelectionLength = 0;
+        rtbLog.SelectionColor = color;
+        rtbLog.AppendText($"[{e.Timestamp:HH:mm:ss}] {e.Message}\n");
+        rtbLog.ScrollToCaret();
+    }
+
+    #endregion
+
+    #region UI 状态管理
+
+    private bool IsRtuMode => rbRtu.Checked;
+
+    private bool IsConnected => IsRtuMode
+        ? (_simulator?.IsConnected ?? _serialPort?.IsConnected ?? false)
+        : (_tcpClient?.IsConnected ?? false);
+
     private void UpdateModeUI()
     {
         bool isRtu = rbRtu.Checked;
-        // RTU controls
         lblPort.Visible = isRtu;
         cmbPort.Visible = isRtu;
         btnRefreshPorts.Visible = isRtu;
         lblBaudRate.Visible = isRtu;
         cmbBaudRate.Visible = isRtu;
         chkSimulation.Visible = isRtu;
-        // TCP controls
+
         lblHost.Visible = !isRtu;
         txtHost.Visible = !isRtu;
         lblTcpPort.Visible = !isRtu;
@@ -125,13 +213,43 @@ public partial class ModbusControl : UserControl
         }
     }
 
-    private void ToggleConnection()
+    private void UpdateConnectionUI(bool connected)
     {
-        if (IsConnected)
-            Disconnect();
+        if (InvokeRequired) { Invoke(() => UpdateConnectionUI(connected)); return; }
+
+        if (connected)
+        {
+            btnConnect.Text = "断开";
+            btnConnect.BackColor = Color.FromArgb(200, 50, 50);
+            lblStatus.Text = "已连接";
+            lblStatus.ForeColor = Color.Green;
+        }
         else
-            Connect();
+        {
+            btnConnect.Text = "连接";
+            btnConnect.BackColor = Color.FromArgb(0, 120, 215);
+            lblStatus.Text = "未连接";
+            lblStatus.ForeColor = Color.Red;
+        }
+        SetConfigEnabled(!connected);
     }
+
+    private void SetConfigEnabled(bool enabled)
+    {
+        rbRtu.Enabled = enabled;
+        rbTcp.Enabled = enabled;
+        cmbPort.Enabled = enabled;
+        btnRefreshPorts.Enabled = enabled;
+        cmbBaudRate.Enabled = enabled;
+        chkSimulation.Enabled = enabled;
+        txtHost.Enabled = enabled;
+        nudTcpPort.Enabled = enabled;
+        nudSlaveAddr.Enabled = enabled;
+    }
+
+    #endregion
+
+    #region 连接管理
 
     private void Connect()
     {
@@ -154,7 +272,6 @@ public partial class ModbusControl : UserControl
             PortName = cmbPort.SelectedItem!.ToString()!.Split(' ')[0],
             BaudRate = int.Parse(cmbBaudRate.SelectedItem?.ToString() ?? "9600"),
         };
-
         var modbusConfig = new ModbusConfig { SlaveAddress = (byte)nudSlaveAddr.Value };
 
         if (chkSimulation.Checked)
@@ -207,39 +324,9 @@ public partial class ModbusControl : UserControl
         UpdateConnectionUI(false);
     }
 
-    private void UpdateConnectionUI(bool connected)
-    {
-        if (InvokeRequired) { Invoke(() => UpdateConnectionUI(connected)); return; }
+    #endregion
 
-        if (connected)
-        {
-            btnConnect.Text = "断开";
-            btnConnect.BackColor = Color.FromArgb(200, 50, 50);
-            lblStatus.Text = "已连接";
-            lblStatus.ForeColor = Color.Green;
-        }
-        else
-        {
-            btnConnect.Text = "连接";
-            btnConnect.BackColor = Color.FromArgb(0, 120, 215);
-            lblStatus.Text = "未连接";
-            lblStatus.ForeColor = Color.Red;
-        }
-        SetConfigEnabled(!connected);
-    }
-
-    private void SetConfigEnabled(bool enabled)
-    {
-        rbRtu.Enabled = enabled;
-        rbTcp.Enabled = enabled;
-        cmbPort.Enabled = enabled;
-        btnRefreshPorts.Enabled = enabled;
-        cmbBaudRate.Enabled = enabled;
-        chkSimulation.Enabled = enabled;
-        txtHost.Enabled = enabled;
-        nudTcpPort.Enabled = enabled;
-        nudSlaveAddr.Enabled = enabled;
-    }
+    #region 数据读写
 
     private async void ReadData()
     {
@@ -248,7 +335,6 @@ public partial class ModbusControl : UserControl
         ushort startAddr = (ushort)nudStartAddr.Value;
         ushort quantity = (ushort)nudQuantity.Value;
         byte fc = GetSelectedFunctionCode();
-
         ModbusResponse? response = null;
 
         try
@@ -269,7 +355,6 @@ public partial class ModbusControl : UserControl
                 response = fc switch
                 {
                     0x01 => await _tcpClient!.ReadCoilsAsync(startAddr, quantity),
-                    0x02 => null, // TCP 离散输入暂未实现
                     0x03 => await _tcpClient!.ReadHoldingRegistersAsync(startAddr, quantity),
                     0x04 => await _tcpClient!.ReadInputRegistersAsync(startAddr, quantity),
                     _ => null
@@ -294,7 +379,6 @@ public partial class ModbusControl : UserControl
         ushort startAddr = (ushort)nudStartAddr.Value;
         byte fc = GetSelectedFunctionCode();
         string valueText = txtValue.Text.Trim();
-
         ModbusResponse? response = null;
 
         try
@@ -376,23 +460,5 @@ public partial class ModbusControl : UserControl
         }
     }
 
-    private void OnLogReceived(object? sender, LogEventArgs e)
-    {
-        if (InvokeRequired) { Invoke(() => OnLogReceived(sender, e)); return; }
-
-        Color color = e.Level switch
-        {
-            LogLevel.Debug => Color.Gray,
-            LogLevel.Info => Color.LimeGreen,
-            LogLevel.Warning => Color.Yellow,
-            LogLevel.Error => Color.Red,
-            _ => Color.White
-        };
-
-        rtbLog.SelectionStart = rtbLog.TextLength;
-        rtbLog.SelectionLength = 0;
-        rtbLog.SelectionColor = color;
-        rtbLog.AppendText($"[{e.Timestamp:HH:mm:ss}] {e.Message}\n");
-        rtbLog.ScrollToCaret();
-    }
+    #endregion
 }

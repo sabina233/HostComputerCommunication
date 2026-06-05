@@ -14,22 +14,11 @@ public partial class OpcUaControl : UserControl
     public OpcUaControl()
     {
         InitializeComponent();
-        SetupEvents();
         SetupDataGridView();
+        BindEvents();
     }
 
-    private void SetupEvents()
-    {
-        _logger.LogReceived += OnLogReceived;
-        btnConnect.Click += async (s, e) => await ConnectAsync();
-        btnDisconnect.Click += async (s, e) => await DisconnectAsync();
-        btnBrowse.Click += async (s, e) => await BrowseRootAsync();
-        btnRead.Click += async (s, e) => await ReadNodeAsync();
-        btnWrite.Click += async (s, e) => await WriteNodeAsync();
-        btnSubscribe.Click += async (s, e) => await SubscribeNodeAsync();
-        btnClearLog.Click += (s, e) => rtbLog.Clear();
-        tvNodes.AfterSelect += OnNodeSelected;
-    }
+    #region 初始化
 
     private void SetupDataGridView()
     {
@@ -38,6 +27,144 @@ public partial class OpcUaControl : UserControl
         dgvData.Columns.Add("Value", "当前值");
         dgvData.Columns.Add("Timestamp", "时间戳");
     }
+
+    #endregion
+
+    #region 事件绑定
+
+    private void BindEvents()
+    {
+        _logger.LogReceived += Logger_LogReceived;
+
+        btnConnect.Click += BtnConnect_Click;
+        btnDisconnect.Click += BtnDisconnect_Click;
+        btnBrowse.Click += BtnBrowse_Click;
+        btnRead.Click += BtnRead_Click;
+        btnWrite.Click += BtnWrite_Click;
+        btnSubscribe.Click += BtnSubscribe_Click;
+        btnClearLog.Click += BtnClearLog_Click;
+        tvNodes.AfterSelect += TvNodes_AfterSelect;
+    }
+
+    #endregion
+
+    #region 连接事件
+
+    private async void BtnConnect_Click(object? sender, EventArgs e)
+    {
+        await ConnectAsync();
+    }
+
+    private async void BtnDisconnect_Click(object? sender, EventArgs e)
+    {
+        await DisconnectAsync();
+    }
+
+    #endregion
+
+    #region 浏览事件
+
+    private async void BtnBrowse_Click(object? sender, EventArgs e)
+    {
+        await BrowseRootAsync();
+    }
+
+    private void TvNodes_AfterSelect(object? sender, TreeViewEventArgs e)
+    {
+        if (e.Node?.Tag is NodeId nodeId)
+        {
+            txtNodeId.Text = nodeId.ToString();
+        }
+    }
+
+    #endregion
+
+    #region 读写事件
+
+    private async void BtnRead_Click(object? sender, EventArgs e)
+    {
+        await ReadNodeAsync();
+    }
+
+    private async void BtnWrite_Click(object? sender, EventArgs e)
+    {
+        await WriteNodeAsync();
+    }
+
+    private async void BtnSubscribe_Click(object? sender, EventArgs e)
+    {
+        await SubscribeNodeAsync();
+    }
+
+    #endregion
+
+    #region 日志事件
+
+    private void BtnClearLog_Click(object? sender, EventArgs e)
+    {
+        rtbLog.Clear();
+    }
+
+    private void Logger_LogReceived(object? sender, LogEventArgs e)
+    {
+        if (InvokeRequired) { Invoke(() => Logger_LogReceived(sender, e)); return; }
+
+        Color color = e.Level switch
+        {
+            LogLevel.Debug => Color.Gray,
+            LogLevel.Info => Color.White,
+            LogLevel.Warning => Color.Yellow,
+            LogLevel.Error => Color.Red,
+            _ => Color.White
+        };
+
+        rtbLog.SelectionStart = rtbLog.TextLength;
+        rtbLog.SelectionLength = 0;
+        rtbLog.SelectionColor = color;
+        rtbLog.AppendText($"[{e.Timestamp:HH:mm:ss}] {e.Message}\n");
+        rtbLog.ScrollToCaret();
+    }
+
+    #endregion
+
+    #region OPC UA 事件回调
+
+    private void OnDataValueChanged(object? sender, DataValueChangedEventArgs e)
+    {
+        if (InvokeRequired) { Invoke(() => OnDataValueChanged(sender, e)); return; }
+
+        foreach (DataGridViewRow row in dgvData.Rows)
+        {
+            if (row.Cells["DisplayName"].Value?.ToString() == e.DisplayName)
+            {
+                row.Cells["Value"].Value = e.DataValue.Value?.ToString();
+                row.Cells["Timestamp"].Value = e.DataValue.SourceTimestamp.ToString("HH:mm:ss.fff");
+                return;
+            }
+        }
+    }
+
+    #endregion
+
+    #region UI 状态管理
+
+    private void UpdateUI(bool connected)
+    {
+        if (InvokeRequired) { Invoke(() => UpdateUI(connected)); return; }
+
+        btnConnect.Enabled = !connected;
+        btnDisconnect.Enabled = connected;
+        txtEndpoint.Enabled = !connected;
+        txtUsername.Enabled = !connected;
+        txtPassword.Enabled = !connected;
+
+        lblStatus.Text = connected ? "已连接" : "未连接";
+        lblStatus.ForeColor = connected ? Color.Green : Color.Red;
+    }
+
+    #endregion
+
+    #region 连接管理
 
     private async Task ConnectAsync()
     {
@@ -59,11 +186,14 @@ public partial class OpcUaControl : UserControl
     private async Task DisconnectAsync()
     {
         if (_opcUaClient != null)
-        {
             await _opcUaClient.DisconnectAsync();
-        }
+
         UpdateUI(false);
     }
+
+    #endregion
+
+    #region 节点操作
 
     private async Task BrowseRootAsync()
     {
@@ -156,7 +286,6 @@ public partial class OpcUaControl : UserControl
             var nodeId = new NodeId(txtNodeId.Text.Trim());
             await _opcUaClient.AddMonitoredItemAsync(subscription, nodeId, txtNodeId.Text.Trim());
             _logger.Info($"已订阅节点 {txtNodeId.Text}", nameof(OpcUaControl));
-
             dgvData.Rows.Add(txtNodeId.Text.Trim(), txtNodeId.Text.Trim(), "等待数据...", DateTime.Now.ToString("HH:mm:ss"));
         }
         catch (Exception ex)
@@ -165,68 +294,5 @@ public partial class OpcUaControl : UserControl
         }
     }
 
-    private void OnNodeSelected(object? sender, TreeViewEventArgs e)
-    {
-        if (e.Node?.Tag is NodeId nodeId)
-        {
-            txtNodeId.Text = nodeId.ToString();
-        }
-    }
-
-    private void OnDataValueChanged(object? sender, DataValueChangedEventArgs e)
-    {
-        if (InvokeRequired) { Invoke(() => OnDataValueChanged(sender, e)); return; }
-
-        foreach (DataGridViewRow row in dgvData.Rows)
-        {
-            if (row.Cells["DisplayName"].Value?.ToString() == e.DisplayName)
-            {
-                row.Cells["Value"].Value = e.DataValue.Value?.ToString();
-                row.Cells["Timestamp"].Value = e.DataValue.SourceTimestamp.ToString("HH:mm:ss.fff");
-                return;
-            }
-        }
-    }
-
-    private void UpdateUI(bool connected)
-    {
-        if (InvokeRequired) { Invoke(() => UpdateUI(connected)); return; }
-
-        btnConnect.Enabled = !connected;
-        btnDisconnect.Enabled = connected;
-        txtEndpoint.Enabled = !connected;
-        txtUsername.Enabled = !connected;
-        txtPassword.Enabled = !connected;
-
-        if (connected)
-        {
-            lblStatus.Text = "已连接";
-            lblStatus.ForeColor = Color.Green;
-        }
-        else
-        {
-            lblStatus.Text = "未连接";
-            lblStatus.ForeColor = Color.Red;
-        }
-    }
-
-    private void OnLogReceived(object? sender, LogEventArgs e)
-    {
-        if (InvokeRequired) { Invoke(() => OnLogReceived(sender, e)); return; }
-
-        Color color = e.Level switch
-        {
-            LogLevel.Debug => Color.Gray,
-            LogLevel.Info => Color.White,
-            LogLevel.Warning => Color.Yellow,
-            LogLevel.Error => Color.Red,
-            _ => Color.White
-        };
-
-        rtbLog.SelectionStart = rtbLog.TextLength;
-        rtbLog.SelectionLength = 0;
-        rtbLog.SelectionColor = color;
-        rtbLog.AppendText($"[{e.Timestamp:HH:mm:ss}] {e.Message}\n");
-        rtbLog.ScrollToCaret();
-    }
+    #endregion
 }

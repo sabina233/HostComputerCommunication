@@ -16,29 +16,195 @@ public partial class SerialPortControl : UserControl
     public SerialPortControl()
     {
         InitializeComponent();
-        SetupEvents();
+        BindEvents();
         RefreshPorts();
     }
 
-    private void SetupEvents()
+    #region 事件绑定
+
+    private void BindEvents()
     {
-        _logger.LogReceived += OnLogReceived;
-        btnRefresh.Click += (s, e) => RefreshPorts();
-        btnConnect.Click += (s, e) => ToggleConnection();
-        btnSend.Click += (s, e) => SendData();
-        btnClearSend.Click += (s, e) => txtSend.Clear();
-        btnClearReceive.Click += (s, e) => rtbReceive.Clear();
-        btnClearLog.Click += (s, e) => rtbLog.Clear();
-        btnExport.Click += (s, e) => ExportLog();
-        rbHex.CheckedChanged += (s, e) => _isHexMode = rbHex.Checked;
-        txtSend.KeyDown += (s, e) => { if (e.KeyCode == Keys.Enter && e.Control) { SendData(); e.SuppressKeyPress = true; } };
-        chkSimulation.CheckedChanged += (s, e) =>
-        {
-            _isSimulationMode = chkSimulation.Checked;
-            RefreshPorts();
-        };
-        _statsTimer.Tick += (s, e) => UpdateStats();
+        _logger.LogReceived += Logger_LogReceived;
+
+        btnRefresh.Click += BtnRefresh_Click;
+        btnConnect.Click += BtnConnect_Click;
+        btnSend.Click += BtnSend_Click;
+        btnClearSend.Click += BtnClearSend_Click;
+        btnClearReceive.Click += BtnClearReceive_Click;
+        btnClearLog.Click += BtnClearLog_Click;
+        btnExport.Click += BtnExport_Click;
+
+        rbHex.CheckedChanged += RbHex_CheckedChanged;
+        txtSend.KeyDown += TxtSend_KeyDown;
+        chkSimulation.CheckedChanged += ChkSimulation_CheckedChanged;
+
+        _statsTimer.Tick += StatsTimer_Tick;
     }
+
+    #endregion
+
+    #region 连接配置事件
+
+    private void BtnRefresh_Click(object? sender, EventArgs e)
+    {
+        RefreshPorts();
+    }
+
+    private void ChkSimulation_CheckedChanged(object? sender, EventArgs e)
+    {
+        _isSimulationMode = chkSimulation.Checked;
+        RefreshPorts();
+    }
+
+    private void BtnConnect_Click(object? sender, EventArgs e)
+    {
+        if (IsConnected)
+            Disconnect();
+        else
+            Connect();
+    }
+
+    #endregion
+
+    #region 发送区事件
+
+    private void RbHex_CheckedChanged(object? sender, EventArgs e)
+    {
+        _isHexMode = rbHex.Checked;
+    }
+
+    private void TxtSend_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.KeyCode == Keys.Enter && e.Control)
+        {
+            SendData();
+            e.SuppressKeyPress = true;
+        }
+    }
+
+    private void BtnSend_Click(object? sender, EventArgs e)
+    {
+        SendData();
+    }
+
+    private void BtnClearSend_Click(object? sender, EventArgs e)
+    {
+        txtSend.Clear();
+    }
+
+    #endregion
+
+    #region 接收区事件
+
+    private void BtnClearReceive_Click(object? sender, EventArgs e)
+    {
+        rtbReceive.Clear();
+    }
+
+    private void BtnExport_Click(object? sender, EventArgs e)
+    {
+        ExportLog();
+    }
+
+    #endregion
+
+    #region 日志区事件
+
+    private void BtnClearLog_Click(object? sender, EventArgs e)
+    {
+        rtbLog.Clear();
+    }
+
+    #endregion
+
+    #region 定时器事件
+
+    private void StatsTimer_Tick(object? sender, EventArgs e)
+    {
+        UpdateStats();
+    }
+
+    #endregion
+
+    #region 串口事件回调
+
+    private void OnDataTransferred(object? sender, SerialDataEventArgs e)
+    {
+        if (InvokeRequired)
+        {
+            Invoke(() => OnDataTransferred(sender, e));
+            return;
+        }
+
+        string timestamp = chkShowTimestamp.Checked ? $"[{e.Timestamp:HH:mm:ss.fff}] " : "";
+        Color color = e.IsSent ? Color.Cyan : Color.LimeGreen;
+        string direction = e.IsSent ? "TX" : "RX";
+        string data = _isHexMode ? e.HexString : e.AsciiString;
+
+        AppendReceiveText(color, $"{timestamp}{direction} >> {data}\n");
+    }
+
+    private void OnConnectionStateChanged(object? sender, bool connected)
+    {
+        if (InvokeRequired)
+        {
+            Invoke(() => OnConnectionStateChanged(sender, connected));
+            return;
+        }
+
+        if (connected)
+        {
+            btnConnect.Text = "关闭串口";
+            btnConnect.BackColor = Color.FromArgb(200, 50, 50);
+            lblStatus.Text = "已连接";
+            lblStatus.ForeColor = Color.Green;
+            SetConfigEnabled(false);
+        }
+        else
+        {
+            btnConnect.Text = "打开串口";
+            btnConnect.BackColor = Color.FromArgb(0, 120, 215);
+            lblStatus.Text = "已断开";
+            lblStatus.ForeColor = Color.Red;
+            SetConfigEnabled(true);
+        }
+    }
+
+    #endregion
+
+    #region 日志回调
+
+    private void Logger_LogReceived(object? sender, LogEventArgs e)
+    {
+        if (InvokeRequired)
+        {
+            Invoke(() => Logger_LogReceived(sender, e));
+            return;
+        }
+
+        Color color = e.Level switch
+        {
+            LogLevel.Debug => Color.Gray,
+            LogLevel.Info => Color.White,
+            LogLevel.Warning => Color.Yellow,
+            LogLevel.Error => Color.Red,
+            _ => Color.White
+        };
+
+        rtbLog.SelectionStart = rtbLog.TextLength;
+        rtbLog.SelectionLength = 0;
+        rtbLog.SelectionColor = color;
+        rtbLog.AppendText($"[{e.Timestamp:HH:mm:ss}] [{e.Level}] {e.Message}\n");
+        rtbLog.ScrollToCaret();
+    }
+
+    #endregion
+
+    #region 业务逻辑
+
+    private bool IsConnected => _isSimulationMode
+        ? _simulator?.IsConnected ?? false
+        : _serialPort?.IsConnected ?? false;
 
     private void RefreshPorts()
     {
@@ -50,18 +216,6 @@ public partial class SerialPortControl : UserControl
         if (cmbPort.Items.Count > 0) cmbPort.SelectedIndex = 0;
     }
 
-    private bool IsConnected => _isSimulationMode
-        ? _simulator?.IsConnected ?? false
-        : _serialPort?.IsConnected ?? false;
-
-    private void ToggleConnection()
-    {
-        if (IsConnected)
-            Disconnect();
-        else
-            Connect();
-    }
-
     private void Connect()
     {
         if (cmbPort.SelectedIndex < 0)
@@ -70,26 +224,7 @@ public partial class SerialPortControl : UserControl
             return;
         }
 
-        var config = new SerialPortConfig
-        {
-            PortName = cmbPort.SelectedItem!.ToString()!.Split(' ')[0],
-            BaudRate = int.Parse(cmbBaudRate.SelectedItem!.ToString()!),
-            DataBits = int.Parse(cmbDataBits.SelectedItem!.ToString()!),
-            Parity = cmbParity.SelectedIndex switch
-            {
-                1 => Parity.Odd,
-                2 => Parity.Even,
-                3 => Parity.Mark,
-                4 => Parity.Space,
-                _ => Parity.None
-            },
-            StopBits = cmbStopBits.SelectedIndex switch
-            {
-                1 => StopBits.OnePointFive,
-                2 => StopBits.Two,
-                _ => StopBits.One
-            }
-        };
+        var config = BuildSerialPortConfig();
 
         if (_isSimulationMode)
         {
@@ -139,46 +274,28 @@ public partial class SerialPortControl : UserControl
             AppendReceiveText(Color.Red, $"[发送失败] {text}\n");
     }
 
-    private void OnDataTransferred(object? sender, SerialDataEventArgs e)
+    private SerialPortConfig BuildSerialPortConfig()
     {
-        if (InvokeRequired)
+        return new SerialPortConfig
         {
-            Invoke(() => OnDataTransferred(sender, e));
-            return;
-        }
-
-        string timestamp = chkShowTimestamp.Checked ? $"[{e.Timestamp:HH:mm:ss.fff}] " : "";
-        Color color = e.IsSent ? Color.Cyan : Color.LimeGreen;
-        string direction = e.IsSent ? "TX" : "RX";
-        string data = _isHexMode ? e.HexString : e.AsciiString;
-
-        AppendReceiveText(color, $"{timestamp}{direction} >> {data}\n");
-    }
-
-    private void OnConnectionStateChanged(object? sender, bool connected)
-    {
-        if (InvokeRequired)
-        {
-            Invoke(() => OnConnectionStateChanged(sender, connected));
-            return;
-        }
-
-        if (connected)
-        {
-            btnConnect.Text = "关闭串口";
-            btnConnect.BackColor = Color.FromArgb(200, 50, 50);
-            lblStatus.Text = "已连接";
-            lblStatus.ForeColor = Color.Green;
-            SetConfigEnabled(false);
-        }
-        else
-        {
-            btnConnect.Text = "打开串口";
-            btnConnect.BackColor = Color.FromArgb(0, 120, 215);
-            lblStatus.Text = "已断开";
-            lblStatus.ForeColor = Color.Red;
-            SetConfigEnabled(true);
-        }
+            PortName = cmbPort.SelectedItem!.ToString()!.Split(' ')[0],
+            BaudRate = int.Parse(cmbBaudRate.SelectedItem!.ToString()!),
+            DataBits = int.Parse(cmbDataBits.SelectedItem!.ToString()!),
+            Parity = cmbParity.SelectedIndex switch
+            {
+                1 => Parity.Odd,
+                2 => Parity.Even,
+                3 => Parity.Mark,
+                4 => Parity.Space,
+                _ => Parity.None
+            },
+            StopBits = cmbStopBits.SelectedIndex switch
+            {
+                1 => StopBits.OnePointFive,
+                2 => StopBits.Two,
+                _ => StopBits.One
+            }
+        };
     }
 
     private void SetConfigEnabled(bool enabled)
@@ -213,30 +330,6 @@ public partial class SerialPortControl : UserControl
         lblStats.Text = $"收: {received} 字节 | 发: {sent} 字节";
     }
 
-    private void OnLogReceived(object? sender, LogEventArgs e)
-    {
-        if (InvokeRequired)
-        {
-            Invoke(() => OnLogReceived(sender, e));
-            return;
-        }
-
-        Color color = e.Level switch
-        {
-            LogLevel.Debug => Color.Gray,
-            LogLevel.Info => Color.White,
-            LogLevel.Warning => Color.Yellow,
-            LogLevel.Error => Color.Red,
-            _ => Color.White
-        };
-
-        rtbLog.SelectionStart = rtbLog.TextLength;
-        rtbLog.SelectionLength = 0;
-        rtbLog.SelectionColor = color;
-        rtbLog.AppendText($"[{e.Timestamp:HH:mm:ss}] [{e.Level}] {e.Message}\n");
-        rtbLog.ScrollToCaret();
-    }
-
     private void ExportLog()
     {
         using var dialog = new SaveFileDialog
@@ -251,4 +344,6 @@ public partial class SerialPortControl : UserControl
             MessageBox.Show("日志已导出", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
+
+    #endregion
 }
