@@ -16,32 +16,9 @@ public partial class SerialPortControl : UserControl
     public SerialPortControl()
     {
         InitializeComponent();
-        BindEvents();
+        _logger.LogReceived += Logger_LogReceived;
         RefreshPorts();
     }
-
-    #region 事件绑定
-
-    private void BindEvents()
-    {
-        _logger.LogReceived += Logger_LogReceived;
-
-        btnRefresh.Click += BtnRefresh_Click;
-        btnConnect.Click += BtnConnect_Click;
-        btnSend.Click += BtnSend_Click;
-        btnClearSend.Click += BtnClearSend_Click;
-        btnClearReceive.Click += BtnClearReceive_Click;
-        btnClearLog.Click += BtnClearLog_Click;
-        btnExport.Click += BtnExport_Click;
-
-        rbHex.CheckedChanged += RbHex_CheckedChanged;
-        txtSend.KeyDown += TxtSend_KeyDown;
-        chkSimulation.CheckedChanged += ChkSimulation_CheckedChanged;
-
-        _statsTimer.Tick += StatsTimer_Tick;
-    }
-
-    #endregion
 
     #region 连接配置事件
 
@@ -346,4 +323,5 @@ public partial class SerialPortControl : UserControl
     }
 
     #endregion
+
 }

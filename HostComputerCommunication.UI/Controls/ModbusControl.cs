@@ -22,7 +22,7 @@ public partial class ModbusControl : UserControl
         InitializeComponent();
         SetupFunctionCodes();
         SetupDataGridView();
-        BindEvents();
+        _logger.LogReceived += Logger_LogReceived;
         RefreshPorts();
         UpdateModeUI();
         UpdateWriteUI();
@@ -32,7 +32,8 @@ public partial class ModbusControl : UserControl
 
     private void SetupFunctionCodes()
     {
-        cmbFunction.Items.AddRange([
+        cmbFunction.Items.AddRange(new object[]
+        {
             "01 - 读线圈",
             "02 - 读离散输入",
             "03 - 读保持寄存器",
@@ -41,7 +42,7 @@ public partial class ModbusControl : UserControl
             "06 - 写单个寄存器",
             "15 - 写多个线圈",
             "16 - 写多个寄存器"
-        ]);
+        });
         cmbFunction.SelectedIndex = 2;
         cmbDataType.SelectedIndex = 0;
     }
@@ -51,24 +52,6 @@ public partial class ModbusControl : UserControl
         dgvRegisters.Columns.Add("Address", "地址");
         dgvRegisters.Columns.Add("RawValue", "原始值");
         dgvRegisters.Columns.Add("Value", "解析值");
-    }
-
-    #endregion
-
-    #region 事件绑定
-
-    private void BindEvents()
-    {
-        _logger.LogReceived += Logger_LogReceived;
-
-        rbRtu.CheckedChanged += RbRtu_CheckedChanged;
-        btnRefreshPorts.Click += BtnRefreshPorts_Click;
-        chkSimulation.CheckedChanged += ChkSimulation_CheckedChanged;
-        btnConnect.Click += BtnConnect_Click;
-        btnRead.Click += BtnRead_Click;
-        btnSend.Click += BtnSend_Click;
-        btnClearLog.Click += BtnClearLog_Click;
-        cmbFunction.SelectedIndexChanged += CmbFunction_SelectedIndexChanged;
     }
 
     #endregion

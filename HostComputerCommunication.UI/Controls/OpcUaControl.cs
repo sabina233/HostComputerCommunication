@@ -15,7 +15,7 @@ public partial class OpcUaControl : UserControl
     {
         InitializeComponent();
         SetupDataGridView();
-        BindEvents();
+        _logger.LogReceived += Logger_LogReceived;
     }
 
     #region 初始化
@@ -26,24 +26,6 @@ public partial class OpcUaControl : UserControl
         dgvData.Columns.Add("DisplayName", "名称");
         dgvData.Columns.Add("Value", "当前值");
         dgvData.Columns.Add("Timestamp", "时间戳");
-    }
-
-    #endregion
-
-    #region 事件绑定
-
-    private void BindEvents()
-    {
-        _logger.LogReceived += Logger_LogReceived;
-
-        btnConnect.Click += BtnConnect_Click;
-        btnDisconnect.Click += BtnDisconnect_Click;
-        btnBrowse.Click += BtnBrowse_Click;
-        btnRead.Click += BtnRead_Click;
-        btnWrite.Click += BtnWrite_Click;
-        btnSubscribe.Click += BtnSubscribe_Click;
-        btnClearLog.Click += BtnClearLog_Click;
-        tvNodes.AfterSelect += TvNodes_AfterSelect;
     }
 
     #endregion

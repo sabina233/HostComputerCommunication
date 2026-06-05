@@ -14,28 +14,9 @@ public partial class TcpSocketControl : UserControl
     public TcpSocketControl()
     {
         InitializeComponent();
-        BindEvents();
+        _logger.LogReceived += Logger_LogReceived;
         UpdateModeUI();
     }
-
-    #region 事件绑定
-
-    private void BindEvents()
-    {
-        _logger.LogReceived += Logger_LogReceived;
-
-        rbClient.CheckedChanged += RbClient_CheckedChanged;
-        btnConnect.Click += BtnConnect_Click;
-        btnSend.Click += BtnSend_Click;
-        btnClearSend.Click += BtnClearSend_Click;
-        btnClearReceive.Click += BtnClearReceive_Click;
-        btnClearLog.Click += BtnClearLog_Click;
-        btnExport.Click += BtnExport_Click;
-        rbHex.CheckedChanged += RbHex_CheckedChanged;
-        txtSend.KeyDown += TxtSend_KeyDown;
-    }
-
-    #endregion
 
     #region 连接配置事件
 
