@@ -4,6 +4,7 @@ namespace HostComputerCommunication.Modbus.Protocol;
 
 /// <summary>
 /// Modbus 响应解析结果
+/// 包含解析后的寄存器值、线圈状态，以及多种数据类型转换方法
 /// </summary>
 public class ModbusResponse
 {
@@ -59,6 +60,8 @@ public class ModbusResponse
 
 /// <summary>
 /// Modbus 响应解析器
+/// 解析 Modbus RTU/TCP 响应帧，提取寄存器数据和线圈状态
+/// 支持异常响应解析
 /// </summary>
 public static class ModbusResponseParser
 {

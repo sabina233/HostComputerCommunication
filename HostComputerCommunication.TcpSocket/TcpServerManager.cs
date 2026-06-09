@@ -8,6 +8,8 @@ namespace HostComputerCommunication.TcpSocket;
 
 /// <summary>
 /// TCP 服务端管理器
+/// 监听指定端口，支持多客户端同时连接
+/// 可向指定客户端或所有客户端发送数据
 /// </summary>
 public class TcpServerManager : IDisposable
 {

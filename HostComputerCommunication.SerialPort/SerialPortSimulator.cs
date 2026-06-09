@@ -4,8 +4,11 @@ using HostComputerCommunication.Common.Models;
 namespace HostComputerCommunication.SerialPort;
 
 /// <summary>
-/// 串口模拟器 - 用于无实物设备时自测
-/// 可模拟回环（自发自收）或自定义响应
+/// 串口模拟器
+/// 用于无实物设备时自测，支持三种模拟模式：
+/// 1. Loopback（回环）: 发送的数据原样返回
+/// 2. RandomResponse（随机响应）: 返回随机数据
+/// 3. ModbusSlave（Modbus从站）: 按 Modbus 协议返回寄存器数据
 /// </summary>
 public class SerialPortSimulator : ISerialPort
 {

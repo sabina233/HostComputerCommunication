@@ -8,6 +8,8 @@ namespace HostComputerCommunication.Modbus;
 
 /// <summary>
 /// Modbus TCP 客户端
+/// 通过以太网（TCP/IP）与 Modbus 设备通信
+/// 使用 MBAP 头部协议，支持异步请求/响应
 /// </summary>
 public class ModbusTcpClient : IDisposable
 {

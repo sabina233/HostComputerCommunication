@@ -4,11 +4,24 @@ using HostComputerCommunication.TcpSocket;
 
 namespace HostComputerCommunication.UI.Controls;
 
+/// <summary>
+/// TCP 通信工具控件
+/// 支持客户端和服务端两种模式
+/// 客户端：连接远程服务器，支持心跳和自动重连
+/// 服务端：监听端口，支持多客户端管理和广播
+/// </summary>
 public partial class TcpSocketControl : UserControl
 {
+    /// <summary>TCP 客户端管理器</summary>
     private TcpClientManager? _tcpClient;
+
+    /// <summary>TCP 服务端管理器</summary>
     private TcpServerManager? _tcpServer;
+
+    /// <summary>日志记录器</summary>
     private readonly Logger _logger = new();
+
+    /// <summary>当前是否为 Hex 模式</summary>
     private bool _isHexMode = true;
 
     public TcpSocketControl()
@@ -203,18 +216,24 @@ public partial class TcpSocketControl : UserControl
                 Port = (int)nudPort.Value,
                 AutoReconnect = chkAutoReconnect.Checked
             };
-            _tcpClient ??= new TcpClientManager(_logger, config);
-            _tcpClient.DataReceived += OnClientDataReceived;
-            _tcpClient.ConnectionStateChanged += OnClientConnectionStateChanged;
+            if (_tcpClient == null)
+            {
+                _tcpClient = new TcpClientManager(_logger, config);
+                _tcpClient.DataReceived += OnClientDataReceived;
+                _tcpClient.ConnectionStateChanged += OnClientConnectionStateChanged;
+            }
             await _tcpClient.ConnectAsync();
         }
         else
         {
             var config = new TcpConfig { Port = (int)nudPort.Value };
-            _tcpServer ??= new TcpServerManager(_logger, config);
-            _tcpServer.DataReceived += OnServerDataReceived;
-            _tcpServer.ClientConnected += OnClientConnected;
-            _tcpServer.ClientDisconnected += OnClientDisconnected;
+            if (_tcpServer == null)
+            {
+                _tcpServer = new TcpServerManager(_logger, config);
+                _tcpServer.DataReceived += OnServerDataReceived;
+                _tcpServer.ClientConnected += OnClientConnected;
+                _tcpServer.ClientDisconnected += OnClientDisconnected;
+            }
             await _tcpServer.StartAsync();
             UpdateConnectionUI(true);
         }
@@ -223,7 +242,10 @@ public partial class TcpSocketControl : UserControl
     private void Disconnect()
     {
         if (IsClientMode)
-            _tcpClient?.Disconnect();
+        {
+            _tcpClient?.Dispose();
+            _tcpClient = null;
+        }
         else
         {
             _tcpServer?.Stop();

@@ -4,6 +4,8 @@ namespace HostComputerCommunication.Modbus.Protocol;
 
 /// <summary>
 /// Modbus 帧构建器
+/// 提供 Modbus RTU 和 TCP 协议的请求帧构建方法
+/// 支持所有常用功能码：01/02/03/04/05/06/0F/10
 /// </summary>
 public static class ModbusFrameBuilder
 {

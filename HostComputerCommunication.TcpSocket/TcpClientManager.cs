@@ -7,6 +7,7 @@ namespace HostComputerCommunication.TcpSocket;
 
 /// <summary>
 /// TCP 客户端管理器
+/// 提供 TCP 客户端连接管理，支持心跳检测和断线自动重连
 /// </summary>
 public class TcpClientManager : IDisposable
 {

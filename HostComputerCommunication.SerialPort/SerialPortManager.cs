@@ -6,13 +6,23 @@ namespace HostComputerCommunication.SerialPort;
 
 /// <summary>
 /// 串口数据事件参数
+/// 包含收发数据的格式化信息，用于 UI 显示
 /// </summary>
 public class SerialDataEventArgs : EventArgs
 {
+    /// <summary>数据收发时间戳</summary>
     public DateTime Timestamp { get; }
+
+    /// <summary>原始字节数组</summary>
     public byte[] Data { get; }
+
+    /// <summary>十六进制格式字符串，如 "01 03 FF"</summary>
     public string HexString { get; }
+
+    /// <summary>ASCII 格式字符串（不可显示字符替换为 ·）</summary>
     public string AsciiString { get; }
+
+    /// <summary>是否为发送的数据（false 表示接收）</summary>
     public bool IsSent { get; }
 
     public SerialDataEventArgs(byte[] data, bool isSent)
@@ -28,6 +38,8 @@ public class SerialDataEventArgs : EventArgs
 
 /// <summary>
 /// 串口管理器
+/// 封装 System.IO.Ports.SerialPort，提供简化的串口通信接口
+/// 支持串口参数配置、数据收发、收发日志记录
 /// </summary>
 public class SerialPortManager : ISerialPort
 {

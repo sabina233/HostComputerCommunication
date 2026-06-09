@@ -5,10 +5,19 @@ using Opc.Ua;
 
 namespace HostComputerCommunication.UI.Controls;
 
+/// <summary>
+/// OPC UA 客户端控件
+/// 连接 OPC UA 服务器，支持节点浏览、数据读写、订阅监控
+/// </summary>
 public partial class OpcUaControl : UserControl
 {
+    /// <summary>OPC UA 客户端实例</summary>
     private OpcUaClient? _opcUaClient;
+
+    /// <summary>日志记录器</summary>
     private readonly Logger _logger = new();
+
+    /// <summary>OPC UA 连接配置</summary>
     private readonly OpcUaConfig _config = new();
 
     public OpcUaControl()

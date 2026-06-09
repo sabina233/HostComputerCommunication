@@ -6,6 +6,8 @@ namespace HostComputerCommunication.Modbus;
 
 /// <summary>
 /// Modbus RTU 客户端
+/// 通过串口（RS232/RS485）与 Modbus 从站设备通信
+/// 支持读写寄存器、线圈等操作，带超时重试机制
 /// </summary>
 public class ModbusRtuClient : IDisposable
 {

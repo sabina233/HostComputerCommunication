@@ -8,13 +8,29 @@ using HostComputerCommunication.TcpSocket;
 
 namespace HostComputerCommunication.UI.Controls;
 
+/// <summary>
+/// Modbus 调试工具控件
+/// 支持 Modbus RTU（串口）和 Modbus TCP（以太网）两种通信方式
+/// 可读写寄存器和线圈，支持多种数据类型解析
+/// </summary>
 public partial class ModbusControl : UserControl
 {
+    /// <summary>Modbus RTU 客户端（串口通信）</summary>
     private ModbusRtuClient? _rtuClient;
+
+    /// <summary>Modbus TCP 客户端（以太网通信）</summary>
     private ModbusTcpClient? _tcpClient;
+
+    /// <summary>真实串口管理器</summary>
     private SerialPortManager? _serialPort;
+
+    /// <summary>串口模拟器</summary>
     private SerialPortSimulator? _simulator;
+
+    /// <summary>TCP 客户端管理器</summary>
     private TcpClientManager? _tcpManager;
+
+    /// <summary>日志记录器</summary>
     private readonly Logger _logger = new();
 
     public ModbusControl()
@@ -302,7 +318,10 @@ public partial class ModbusControl : UserControl
         }
         else
         {
-            _tcpClient?.Disconnect();
+            _tcpClient?.Dispose();
+            _tcpClient = null;
+            _tcpManager?.Dispose();
+            _tcpManager = null;
         }
         UpdateConnectionUI(false);
     }

@@ -8,6 +8,8 @@ namespace HostComputerCommunication.OpcUa;
 
 /// <summary>
 /// OPC UA 客户端
+/// 连接 OPC UA 服务器，支持节点浏览、数据读写、订阅监控
+/// 使用 OPC Foundation 官方 .NET Standard 库
 /// </summary>
 public class OpcUaClient : IDisposable
 {

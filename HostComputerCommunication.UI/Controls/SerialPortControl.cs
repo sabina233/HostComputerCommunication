@@ -5,12 +5,25 @@ using HostComputerCommunication.SerialPort;
 
 namespace HostComputerCommunication.UI.Controls;
 
+/// <summary>
+/// 串口调试助手控件
+/// 提供串口参数配置、数据收发（Hex/ASCII）、收发日志显示、模拟模式等功能
+/// </summary>
 public partial class SerialPortControl : UserControl
 {
+    /// <summary>真实串口管理器</summary>
     private SerialPortManager? _serialPort;
+
+    /// <summary>串口模拟器（模拟模式时使用）</summary>
     private SerialPortSimulator? _simulator;
+
+    /// <summary>日志记录器</summary>
     private readonly Logger _logger = new();
+
+    /// <summary>当前是否为 Hex 模式（false 为 ASCII 模式）</summary>
     private bool _isHexMode = true;
+
+    /// <summary>是否启用模拟模式</summary>
     private bool _isSimulationMode = false;
 
     public SerialPortControl()
