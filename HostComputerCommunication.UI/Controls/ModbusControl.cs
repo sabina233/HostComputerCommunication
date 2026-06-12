@@ -275,16 +275,16 @@ public partial class ModbusControl : UserControl
 
         if (chkSimulation.Checked)
         {
-            _simulator ??= new SerialPortSimulator(_logger);
+            _simulator = new SerialPortSimulator(_logger);
             _simulator.Mode = SimulationMode.ModbusSlave;
             _simulator.Open(config);
-            _rtuClient ??= new ModbusRtuClient(_simulator, _logger, modbusConfig);
+            _rtuClient = new ModbusRtuClient(_simulator, _logger, modbusConfig);
         }
         else
         {
-            _serialPort ??= new SerialPortManager(_logger);
+            _serialPort = new SerialPortManager(_logger);
             if (!_serialPort.Open(config)) return;
-            _rtuClient ??= new ModbusRtuClient(_serialPort, _logger, modbusConfig);
+            _rtuClient = new ModbusRtuClient(_serialPort, _logger, modbusConfig);
         }
 
         UpdateConnectionUI(true);
@@ -299,8 +299,8 @@ public partial class ModbusControl : UserControl
         };
         var modbusConfig = new ModbusConfig { SlaveAddress = (byte)nudSlaveAddr.Value };
 
-        _tcpManager ??= new TcpClientManager(_logger, tcpConfig);
-        _tcpClient ??= new ModbusTcpClient(_tcpManager, _logger, modbusConfig);
+        _tcpManager = new TcpClientManager(_logger, tcpConfig);
+        _tcpClient = new ModbusTcpClient(_tcpManager, _logger, modbusConfig);
 
         _ = Task.Run(async () =>
         {
@@ -311,18 +311,16 @@ public partial class ModbusControl : UserControl
 
     private void Disconnect()
     {
-        if (IsRtuMode)
-        {
-            _simulator?.Close();
-            _serialPort?.Close();
-        }
-        else
-        {
-            _tcpClient?.Dispose();
-            _tcpClient = null;
-            _tcpManager?.Dispose();
-            _tcpManager = null;
-        }
+        _rtuClient?.Dispose();
+        _rtuClient = null;
+        _simulator?.Close();
+        _simulator = null;
+        _serialPort?.Close();
+        _serialPort = null;
+        _tcpClient?.Dispose();
+        _tcpClient = null;
+        _tcpManager?.Dispose();
+        _tcpManager = null;
         UpdateConnectionUI(false);
     }
 
