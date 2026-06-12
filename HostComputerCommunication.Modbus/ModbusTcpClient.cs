@@ -66,6 +66,14 @@ public class ModbusTcpClient : IDisposable
         return response != null ? ModbusResponseParser.ParseTcpResponse(response) : null;
     }
 
+    public async Task<ModbusResponse?> ReadDiscreteInputsAsync(ushort startAddress, ushort quantity)
+    {
+        ushort tid = GetNextTransactionId();
+        byte[] request = ModbusFrameBuilder.TcpReadDiscreteInputs(tid, _config.SlaveAddress, startAddress, quantity);
+        byte[]? response = await SendRequestAsync(tid, request);
+        return response != null ? ModbusResponseParser.ParseTcpResponse(response) : null;
+    }
+
     public async Task<ModbusResponse?> WriteSingleRegisterAsync(ushort address, ushort value)
     {
         ushort tid = GetNextTransactionId();

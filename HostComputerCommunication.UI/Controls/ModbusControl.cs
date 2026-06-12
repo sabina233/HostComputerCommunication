@@ -357,6 +357,7 @@ public partial class ModbusControl : UserControl
                     response = fc switch
                     {
                         0x01 => await _tcpClient!.ReadCoilsAsync(startAddr, quantity),
+                        0x02 => await _tcpClient!.ReadDiscreteInputsAsync(startAddr, quantity),
                         0x03 => await _tcpClient!.ReadHoldingRegistersAsync(startAddr, quantity),
                         0x04 => await _tcpClient!.ReadInputRegistersAsync(startAddr, quantity),
                         _ => null
