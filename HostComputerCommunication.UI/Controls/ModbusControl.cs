@@ -15,6 +15,9 @@ namespace HostComputerCommunication.UI.Controls;
 /// </summary>
 public partial class ModbusControl : UserControl
 {
+    // 默认常量
+    private const int DefaultBaudRate = 9600;
+
     /// <summary>Modbus RTU 客户端（串口通信）</summary>
     private ModbusRtuClient? _rtuClient;
 
@@ -269,7 +272,7 @@ public partial class ModbusControl : UserControl
         var config = new SerialPortConfig
         {
             PortName = cmbPort.SelectedItem!.ToString()!.Split(' ')[0],
-            BaudRate = int.Parse(cmbBaudRate.SelectedItem?.ToString() ?? "9600"),
+            BaudRate = int.Parse(cmbBaudRate.SelectedItem?.ToString() ?? DefaultBaudRate.ToString()),
         };
         var modbusConfig = new ModbusConfig { SlaveAddress = (byte)nudSlaveAddr.Value };
 

@@ -93,7 +93,7 @@ partial class OpcUaControl
         txtEndpoint.Name = "txtEndpoint";
         txtEndpoint.Size = new Size(205, 23);
         txtEndpoint.TabIndex = 1;
-        txtEndpoint.Text = "opc.tcp://localhost:4840";
+        txtEndpoint.Text = "opc.tcp://localhost:4840"; // default endpoint
         //
         // lblUsername
         //
