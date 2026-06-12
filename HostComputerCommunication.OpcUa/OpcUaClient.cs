@@ -192,6 +192,31 @@ public class OpcUaClient : IDisposable
     }
 
     /// <summary>
+    /// 获取节点的显示名称
+    /// </summary>
+    public async Task<string> GetDisplayNameAsync(NodeId nodeId)
+    {
+        if (_session == null)
+            throw new InvalidOperationException("未连接到 OPC UA 服务器");
+
+        var response = await _session.ReadAsync(
+            null,
+            0,
+            TimestampsToReturn.Both,
+            new ReadValueIdCollection { new ReadValueId { NodeId = nodeId, AttributeId = Attributes.DisplayName } },
+            CancellationToken.None);
+
+        if (response.Results is { Count: > 0 } && StatusCode.IsGood(response.Results[0].StatusCode))
+        {
+            var displayName = response.Results[0].Value as LocalizedText;
+            if (displayName != null && !string.IsNullOrEmpty(displayName.Text))
+                return displayName.Text;
+        }
+
+        return nodeId.ToString();
+    }
+
+    /// <summary>
     /// 创建订阅
     /// </summary>
     public async Task<Subscription> CreateSubscriptionAsync(uint publishingInterval = 1000)

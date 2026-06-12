@@ -317,9 +317,13 @@ public partial class OpcUaControl : UserControl
         {
             var subscription = await _opcUaClient.CreateSubscriptionAsync(1000);
             var nodeId = new NodeId(txtNodeId.Text.Trim());
-            await _opcUaClient.AddMonitoredItemAsync(subscription, nodeId, txtNodeId.Text.Trim());
-            _logger.Info($"已订阅节点 {txtNodeId.Text}", nameof(OpcUaControl));
-            dgvData.Rows.Add(txtNodeId.Text.Trim(), txtNodeId.Text.Trim(), "等待数据...", DateTime.Now.ToString("HH:mm:ss"));
+
+            // 获取节点的显示名称
+            string displayName = await _opcUaClient.GetDisplayNameAsync(nodeId);
+
+            await _opcUaClient.AddMonitoredItemAsync(subscription, nodeId, displayName);
+            _logger.Info($"已订阅节点 {txtNodeId.Text} (显示名: {displayName})", nameof(OpcUaControl));
+            dgvData.Rows.Add(txtNodeId.Text.Trim(), displayName, "等待数据...", DateTime.Now.ToString("HH:mm:ss"));
         }
         catch (Exception ex)
         {
