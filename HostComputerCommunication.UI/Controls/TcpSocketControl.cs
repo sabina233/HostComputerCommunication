@@ -223,24 +223,20 @@ public partial class TcpSocketControl : UserControl
                 Port = (int)nudPort.Value,
                 AutoReconnect = chkAutoReconnect.Checked
             };
-            if (_tcpClient == null)
-            {
-                _tcpClient = new TcpClientManager(_logger, config);
-                _tcpClient.DataReceived += OnClientDataReceived;
-                _tcpClient.ConnectionStateChanged += OnClientConnectionStateChanged;
-            }
+            _tcpClient?.Dispose();
+            _tcpClient = new TcpClientManager(_logger, config);
+            _tcpClient.DataReceived += OnClientDataReceived;
+            _tcpClient.ConnectionStateChanged += OnClientConnectionStateChanged;
             await _tcpClient.ConnectAsync();
         }
         else
         {
             var config = new TcpConfig { Port = (int)nudPort.Value };
-            if (_tcpServer == null)
-            {
-                _tcpServer = new TcpServerManager(_logger, config);
-                _tcpServer.DataReceived += OnServerDataReceived;
-                _tcpServer.ClientConnected += OnClientConnected;
-                _tcpServer.ClientDisconnected += OnClientDisconnected;
-            }
+            _tcpServer?.Dispose();
+            _tcpServer = new TcpServerManager(_logger, config);
+            _tcpServer.DataReceived += OnServerDataReceived;
+            _tcpServer.ClientConnected += OnClientConnected;
+            _tcpServer.ClientDisconnected += OnClientDisconnected;
             await _tcpServer.StartAsync();
             UpdateConnectionUI(true);
         }
