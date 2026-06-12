@@ -20,7 +20,7 @@ public class ModbusResponse
     public bool[]? CoilValues { get; set; }
 
     // 原始数据
-    public byte[] RawData { get; set; } = [];
+    public byte[] RawData { get; init; } = [];
 
     // 数据类型解析
     public short GetInt16(int index) => RegisterValues != null ? (short)RegisterValues[index] : (short)0;
