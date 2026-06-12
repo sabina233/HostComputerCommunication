@@ -40,10 +40,17 @@ public partial class TcpSocketControl : UserControl
 
     private async void BtnConnect_Click(object? sender, EventArgs e)
     {
-        if (IsConnected)
-            Disconnect();
-        else
-            await ConnectAsync();
+        try
+        {
+            if (IsConnected)
+                Disconnect();
+            else
+                await ConnectAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"BtnConnect_Click 严重错误: {ex}", nameof(TcpSocketControl));
+        }
     }
 
     #endregion
@@ -259,44 +266,51 @@ public partial class TcpSocketControl : UserControl
 
     private async void SendData()
     {
-        string text = txtSend.Text.Trim();
-        if (string.IsNullOrEmpty(text)) return;
-
-        byte[] data;
         try
         {
-            data = _isHexMode ? ByteHelper.FromHexString(text) : System.Text.Encoding.ASCII.GetBytes(text);
+            string text = txtSend.Text.Trim();
+            if (string.IsNullOrEmpty(text)) return;
+
+            byte[] data;
+            try
+            {
+                data = _isHexMode ? ByteHelper.FromHexString(text) : System.Text.Encoding.ASCII.GetBytes(text);
+            }
+            catch (Exception ex)
+            {
+                AppendReceiveText(Color.Red, $"[格式错误] {ex.Message}\n");
+                return;
+            }
+
+            bool success;
+            if (IsClientMode)
+            {
+                success = _tcpClient != null && await _tcpClient.SendAsync(data);
+            }
+            else
+            {
+                if (lstClients.SelectedItem is string clientId)
+                    success = _tcpServer != null && await _tcpServer.SendAsync(clientId, data);
+                else
+                {
+                    AppendReceiveText(Color.Yellow, "[提示] 请先选择一个客户端\n");
+                    return;
+                }
+            }
+
+            if (success)
+            {
+                string display = _isHexMode ? ByteHelper.ToHexString(data) : System.Text.Encoding.ASCII.GetString(data);
+                AppendReceiveText(Color.Cyan, $"[{DateTime.Now:HH:mm:ss.fff}] TX >> {display}\n");
+            }
+            else
+            {
+                AppendReceiveText(Color.Red, "[发送失败]\n");
+            }
         }
         catch (Exception ex)
         {
-            AppendReceiveText(Color.Red, $"[格式错误] {ex.Message}\n");
-            return;
-        }
-
-        bool success;
-        if (IsClientMode)
-        {
-            success = _tcpClient != null && await _tcpClient.SendAsync(data);
-        }
-        else
-        {
-            if (lstClients.SelectedItem is string clientId)
-                success = _tcpServer != null && await _tcpServer.SendAsync(clientId, data);
-            else
-            {
-                AppendReceiveText(Color.Yellow, "[提示] 请先选择一个客户端\n");
-                return;
-            }
-        }
-
-        if (success)
-        {
-            string display = _isHexMode ? ByteHelper.ToHexString(data) : System.Text.Encoding.ASCII.GetString(data);
-            AppendReceiveText(Color.Cyan, $"[{DateTime.Now:HH:mm:ss.fff}] TX >> {display}\n");
-        }
-        else
-        {
-            AppendReceiveText(Color.Red, "[发送失败]\n");
+            _logger.Error($"SendData 严重错误: {ex}", nameof(TcpSocketControl));
         }
     }
 

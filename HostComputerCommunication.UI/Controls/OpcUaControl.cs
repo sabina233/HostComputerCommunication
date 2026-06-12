@@ -43,12 +43,26 @@ public partial class OpcUaControl : UserControl
 
     private async void BtnConnect_Click(object? sender, EventArgs e)
     {
-        await ConnectAsync();
+        try
+        {
+            await ConnectAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"BtnConnect_Click 严重错误: {ex}", nameof(OpcUaControl));
+        }
     }
 
     private async void BtnDisconnect_Click(object? sender, EventArgs e)
     {
-        await DisconnectAsync();
+        try
+        {
+            await DisconnectAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"BtnDisconnect_Click 严重错误: {ex}", nameof(OpcUaControl));
+        }
     }
 
     #endregion
@@ -57,7 +71,14 @@ public partial class OpcUaControl : UserControl
 
     private async void BtnBrowse_Click(object? sender, EventArgs e)
     {
-        await BrowseRootAsync();
+        try
+        {
+            await BrowseRootAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"BtnBrowse_Click 严重错误: {ex}", nameof(OpcUaControl));
+        }
     }
 
     private void TvNodes_AfterSelect(object? sender, TreeViewEventArgs e)
@@ -74,17 +95,38 @@ public partial class OpcUaControl : UserControl
 
     private async void BtnRead_Click(object? sender, EventArgs e)
     {
-        await ReadNodeAsync();
+        try
+        {
+            await ReadNodeAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"BtnRead_Click 严重错误: {ex}", nameof(OpcUaControl));
+        }
     }
 
     private async void BtnWrite_Click(object? sender, EventArgs e)
     {
-        await WriteNodeAsync();
+        try
+        {
+            await WriteNodeAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"BtnWrite_Click 严重错误: {ex}", nameof(OpcUaControl));
+        }
     }
 
     private async void BtnSubscribe_Click(object? sender, EventArgs e)
     {
-        await SubscribeNodeAsync();
+        try
+        {
+            await SubscribeNodeAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"BtnSubscribe_Click 严重错误: {ex}", nameof(OpcUaControl));
+        }
     }
 
     #endregion

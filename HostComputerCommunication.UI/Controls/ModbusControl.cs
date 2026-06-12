@@ -332,89 +332,103 @@ public partial class ModbusControl : UserControl
 
     private async void ReadData()
     {
-        if (!IsConnected) { MessageBox.Show("请先连接设备", "提示"); return; }
-
-        ushort startAddr = (ushort)nudStartAddr.Value;
-        ushort quantity = (ushort)nudQuantity.Value;
-        byte fc = GetSelectedFunctionCode();
-        ModbusResponse? response = null;
-
         try
         {
-            if (IsRtuMode)
+            if (!IsConnected) { MessageBox.Show("请先连接设备", "提示"); return; }
+
+            ushort startAddr = (ushort)nudStartAddr.Value;
+            ushort quantity = (ushort)nudQuantity.Value;
+            byte fc = GetSelectedFunctionCode();
+            ModbusResponse? response = null;
+
+            try
             {
-                response = fc switch
+                if (IsRtuMode)
                 {
-                    0x01 => _rtuClient!.ReadCoils(startAddr, quantity),
-                    0x02 => _rtuClient!.ReadDiscreteInputs(startAddr, quantity),
-                    0x03 => _rtuClient!.ReadHoldingRegisters(startAddr, quantity),
-                    0x04 => _rtuClient!.ReadInputRegisters(startAddr, quantity),
-                    _ => null
-                };
+                    response = fc switch
+                    {
+                        0x01 => _rtuClient!.ReadCoils(startAddr, quantity),
+                        0x02 => _rtuClient!.ReadDiscreteInputs(startAddr, quantity),
+                        0x03 => _rtuClient!.ReadHoldingRegisters(startAddr, quantity),
+                        0x04 => _rtuClient!.ReadInputRegisters(startAddr, quantity),
+                        _ => null
+                    };
+                }
+                else
+                {
+                    response = fc switch
+                    {
+                        0x01 => await _tcpClient!.ReadCoilsAsync(startAddr, quantity),
+                        0x03 => await _tcpClient!.ReadHoldingRegistersAsync(startAddr, quantity),
+                        0x04 => await _tcpClient!.ReadInputRegistersAsync(startAddr, quantity),
+                        _ => null
+                    };
+                }
             }
+            catch (Exception ex)
+            {
+                _logger.Error($"读取异常: {ex.Message}", nameof(ModbusControl));
+            }
+
+            if (response != null)
+                DisplayResponse(response, startAddr);
             else
-            {
-                response = fc switch
-                {
-                    0x01 => await _tcpClient!.ReadCoilsAsync(startAddr, quantity),
-                    0x03 => await _tcpClient!.ReadHoldingRegistersAsync(startAddr, quantity),
-                    0x04 => await _tcpClient!.ReadInputRegistersAsync(startAddr, quantity),
-                    _ => null
-                };
-            }
+                _logger.Warning("未收到响应", nameof(ModbusControl));
         }
         catch (Exception ex)
         {
-            _logger.Error($"读取异常: {ex.Message}", nameof(ModbusControl));
+            _logger.Error($"ReadData 严重错误: {ex}", nameof(ModbusControl));
         }
-
-        if (response != null)
-            DisplayResponse(response, startAddr);
-        else
-            _logger.Warning("未收到响应", nameof(ModbusControl));
     }
 
     private async void WriteData()
     {
-        if (!IsConnected) { MessageBox.Show("请先连接设备", "提示"); return; }
-
-        ushort startAddr = (ushort)nudStartAddr.Value;
-        byte fc = GetSelectedFunctionCode();
-        string valueText = txtValue.Text.Trim();
-        ModbusResponse? response = null;
-
         try
         {
-            if (IsRtuMode)
+            if (!IsConnected) { MessageBox.Show("请先连接设备", "提示"); return; }
+
+            ushort startAddr = (ushort)nudStartAddr.Value;
+            byte fc = GetSelectedFunctionCode();
+            string valueText = txtValue.Text.Trim();
+            ModbusResponse? response = null;
+
+            try
             {
-                response = fc switch
+                if (IsRtuMode)
                 {
-                    0x05 => _rtuClient!.WriteSingleCoil(startAddr, valueText == "1" || valueText.ToLower() == "true"),
-                    0x06 => _rtuClient!.WriteSingleRegister(startAddr, ushort.Parse(valueText)),
-                    0x10 => _rtuClient!.WriteMultipleRegisters(startAddr, ParseUshortArray(valueText)),
-                    _ => null
-                };
+                    response = fc switch
+                    {
+                        0x05 => _rtuClient!.WriteSingleCoil(startAddr, valueText == "1" || valueText.ToLower() == "true"),
+                        0x06 => _rtuClient!.WriteSingleRegister(startAddr, ushort.Parse(valueText)),
+                        0x10 => _rtuClient!.WriteMultipleRegisters(startAddr, ParseUshortArray(valueText)),
+                        _ => null
+                    };
+                }
+                else
+                {
+                    response = fc switch
+                    {
+                        0x05 => await _tcpClient!.WriteSingleCoilAsync(startAddr, valueText == "1" || valueText.ToLower() == "true"),
+                        0x06 => await _tcpClient!.WriteSingleRegisterAsync(startAddr, ushort.Parse(valueText)),
+                        0x10 => await _tcpClient!.WriteMultipleRegistersAsync(startAddr, ParseUshortArray(valueText)),
+                        _ => null
+                    };
+                }
             }
-            else
+            catch (Exception ex)
             {
-                response = fc switch
-                {
-                    0x05 => await _tcpClient!.WriteSingleCoilAsync(startAddr, valueText == "1" || valueText.ToLower() == "true"),
-                    0x06 => await _tcpClient!.WriteSingleRegisterAsync(startAddr, ushort.Parse(valueText)),
-                    0x10 => await _tcpClient!.WriteMultipleRegistersAsync(startAddr, ParseUshortArray(valueText)),
-                    _ => null
-                };
+                _logger.Error($"写入异常: {ex.Message}", nameof(ModbusControl));
             }
+
+            if (response?.Success == true)
+                _logger.Info("写入成功", nameof(ModbusControl));
+            else if (response != null)
+                _logger.Warning($"写入失败: {response.ErrorMessage}", nameof(ModbusControl));
         }
         catch (Exception ex)
         {
-            _logger.Error($"写入异常: {ex.Message}", nameof(ModbusControl));
+            _logger.Error($"WriteData 严重错误: {ex}", nameof(ModbusControl));
         }
-
-        if (response?.Success == true)
-            _logger.Info("写入成功", nameof(ModbusControl));
-        else if (response != null)
-            _logger.Warning($"写入失败: {response.ErrorMessage}", nameof(ModbusControl));
     }
 
     private ushort[] ParseUshortArray(string text)
