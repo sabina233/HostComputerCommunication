@@ -65,6 +65,17 @@ public class OpcUaClient : IDisposable
 
             var sessionFactory = new DefaultSessionFactory();
             var endpoint = CoreClientUtils.SelectEndpoint(applicationConfig, _config.EndpointUrl, false);
+
+            // 应用安全策略和安全模式配置
+            endpoint.SecurityPolicyUri = _config.SecurityPolicy.ToLower() switch
+            {
+                "basic128rsa15" => SecurityPolicies.Basic128Rsa15,
+                "basic256" => SecurityPolicies.Basic256,
+                "basic256sha256" => SecurityPolicies.Basic256Sha256,
+                _ => SecurityPolicies.None
+            };
+            endpoint.SecurityMode = (MessageSecurityMode)_config.SecurityMode;
+
             var configuredEndpoint = new ConfiguredEndpoint(null, endpoint, EndpointConfiguration.Create(applicationConfig));
 
             _session = await sessionFactory.CreateAsync(

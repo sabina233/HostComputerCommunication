@@ -89,4 +89,10 @@ public class OpcUaConfig
 
     /// <summary>会话超时时间（毫秒）</summary>
     public int SessionTimeout { get; set; } = 60000;
+
+    /// <summary>安全策略: None, Basic128Rsa15, Basic256, Basic256Sha256</summary>
+    public string SecurityPolicy { get; set; } = "None";
+
+    /// <summary>安全模式: 1=None, 2=Sign, 3=SignAndEncrypt</summary>
+    public int SecurityMode { get; set; } = 1;
 }
